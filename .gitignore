@@ -3,3 +3,5 @@ bin/
 *.sqlite
 .DS_Store
 SESSION_CONTEXT.md
+SPEC.md
+CONTEXT.md
