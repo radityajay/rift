@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -51,34 +52,18 @@ func runListen(cmd *cobra.Command, args []string) error {
 	}
 	defer store.Close()
 
-	// Connect to relay
-	tunnel, err := client.Connect(ctx, client.TunnelConfig{
+	cfg := client.TunnelConfig{
 		RelayURL:    listenRelay,
 		TargetAddr:  listenTo,
 		InspectAddr: listenInspect,
 		NoInspect:   listenNoInsp,
 		Store:       store,
-	})
-	if err != nil {
-		return fmt.Errorf("connect: %w", err)
 	}
-	defer tunnel.Close()
 
-	info := tunnel.Info()
-	fmt.Println()
-	fmt.Println("  Rift tunnel aktif")
-	fmt.Printf("  Public URL : %s\n", info.PublicURL)
-	fmt.Printf("  Forwarding : → http://%s\n", listenTo)
+	// Start inspect UI once (persists across reconnects)
+	var inspectSrv *client.InspectServer
 	if !listenNoInsp {
-		fmt.Printf("  Inspect    : http://localhost%s\n", listenInspect)
-	}
-	fmt.Println("  Encryption : E2E (X25519 + ChaCha20-Poly1305)")
-	fmt.Println()
-
-	// Start inspect UI
-	if !listenNoInsp {
-		inspectSrv := client.NewInspectServer(listenInspect, store)
-		tunnel.SetInspect(inspectSrv)
+		inspectSrv = client.NewInspectServer(listenInspect, store)
 		go func() {
 			if err := inspectSrv.Start(ctx); err != nil {
 				log.Printf("inspect server: %v", err)
@@ -86,6 +71,62 @@ func runListen(cmd *cobra.Command, args []string) error {
 		}()
 	}
 
-	// Listen for incoming webhooks
-	return tunnel.Listen(ctx)
+	// Reconnect loop
+	firstConnect := true
+	backoff := time.Second
+
+	for {
+		if ctx.Err() != nil {
+			return nil
+		}
+
+		tunnel, err := client.Connect(ctx, cfg)
+		if err != nil {
+			if ctx.Err() != nil {
+				return nil
+			}
+			if firstConnect {
+				return fmt.Errorf("connect: %w", err)
+			}
+			log.Printf("reconnect failed: %v (retry in %s)", err, backoff)
+			select {
+			case <-time.After(backoff):
+				backoff = min(backoff*2, 30*time.Second)
+				continue
+			case <-ctx.Done():
+				return nil
+			}
+		}
+
+		backoff = time.Second
+
+		if inspectSrv != nil {
+			tunnel.SetInspect(inspectSrv)
+		}
+
+		info := tunnel.Info()
+		if firstConnect {
+			fmt.Println()
+			fmt.Println("  Rift tunnel aktif")
+			fmt.Printf("  Public URL : %s\n", info.PublicURL)
+			fmt.Printf("  Forwarding : → http://%s\n", listenTo)
+			if !listenNoInsp {
+				fmt.Printf("  Inspect    : http://localhost%s\n", listenInspect)
+			}
+			fmt.Println("  Encryption : E2E (X25519 + ChaCha20-Poly1305)")
+			fmt.Println()
+			firstConnect = false
+		} else {
+			log.Printf("reconnected: %s", info.PublicURL)
+		}
+
+		err = tunnel.Listen(ctx)
+		tunnel.Close()
+
+		if ctx.Err() != nil {
+			return nil
+		}
+
+		log.Printf("tunnel disconnected: %v (reconnecting...)", err)
+	}
 }
