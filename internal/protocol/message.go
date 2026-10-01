@@ -48,6 +48,7 @@ type HTTPResponse struct {
 	StatusCode int         `json:"status_code"`
 	Headers    http.Header `json:"headers"`
 	Body       []byte      `json:"body"`
+	DurationMs int64       `json:"duration_ms"`
 }
 
 // Encode serializes an envelope to JSON bytes.

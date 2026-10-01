@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -21,7 +22,8 @@ var listenCmd = &cobra.Command{
 	Short: "Create a tunnel and forward webhooks to localhost",
 	Example: `  rift listen --to localhost:8080
   rift listen --to localhost:3000 --relay wss://relay.example.com
-  rift listen --to localhost:8080 --no-inspect`,
+  rift listen --to localhost:8080 --no-inspect
+  rift listen --to localhost:8080 --filter /webhook,/stripe`,
 	RunE: runListen,
 }
 
@@ -30,6 +32,7 @@ var (
 	listenRelay   string
 	listenInspect string
 	listenNoInsp  bool
+	listenFilters []string
 )
 
 func init() {
@@ -37,6 +40,7 @@ func init() {
 	listenCmd.Flags().StringVar(&listenRelay, "relay", "wss://relay.riftunnel.dev", "Relay server URL")
 	listenCmd.Flags().StringVar(&listenInspect, "inspect", ":4040", "Local inspect UI address")
 	listenCmd.Flags().BoolVar(&listenNoInsp, "no-inspect", false, "Disable inspect UI")
+	listenCmd.Flags().StringSliceVar(&listenFilters, "filter", nil, "Only forward requests matching these path patterns")
 	_ = listenCmd.MarkFlagRequired("to")
 }
 
@@ -58,6 +62,7 @@ func runListen(cmd *cobra.Command, args []string) error {
 		InspectAddr: listenInspect,
 		NoInspect:   listenNoInsp,
 		Store:       store,
+		Filters:     listenFilters,
 	}
 
 	// Start inspect UI once (persists across reconnects)
@@ -112,6 +117,9 @@ func runListen(cmd *cobra.Command, args []string) error {
 			fmt.Printf("  Forwarding : → http://%s\n", listenTo)
 			if !listenNoInsp {
 				fmt.Printf("  Inspect    : http://localhost%s\n", listenInspect)
+			}
+			if len(listenFilters) > 0 {
+				fmt.Printf("  Filter     : %s\n", strings.Join(listenFilters, ", "))
 			}
 			fmt.Println("  Encryption : E2E (X25519 + ChaCha20-Poly1305)")
 			fmt.Println()

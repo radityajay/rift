@@ -110,6 +110,13 @@
                 meta.appendChild(time);
             }
 
+            if (rec.DurationMs) {
+                const dur = document.createElement('span');
+                dur.className = 'req-time';
+                dur.textContent = rec.DurationMs + 'ms';
+                meta.appendChild(dur);
+            }
+
             el.appendChild(method);
             el.appendChild(path);
             el.appendChild(meta);

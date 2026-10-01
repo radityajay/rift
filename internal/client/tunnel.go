@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 
 	"nhooyr.io/websocket"
 
@@ -20,6 +21,7 @@ type TunnelConfig struct {
 	InspectAddr string
 	NoInspect   bool
 	Store       *storage.Store
+	Filters     []string // path patterns to match (e.g. "/webhook", "/stripe")
 }
 
 // TunnelInfo contains information about an established tunnel.
@@ -141,6 +143,12 @@ func (t *Tunnel) handleRequest(ctx context.Context, payload json.RawMessage) {
 
 	log.Printf("← %s %s → %s", req.Method, req.Path, t.cfg.TargetAddr)
 
+	// Apply path filter — skip requests that don't match any filter pattern
+	if !t.matchesFilter(req.Path) {
+		log.Printf("⊘ %s %s (filtered out)", req.Method, req.Path)
+		return
+	}
+
 	// Store request (before forwarding)
 	headersJSON, _ := json.Marshal(req.Headers)
 	if t.cfg.Store != nil {
@@ -167,7 +175,7 @@ func (t *Tunnel) handleRequest(ctx context.Context, payload json.RawMessage) {
 	// Update stored response
 	if t.cfg.Store != nil {
 		resHeadersJSON, _ := json.Marshal(resp.Headers)
-		t.cfg.Store.UpdateResponse(req.ID, resp.StatusCode, string(resHeadersJSON), resp.Body, 0)
+		t.cfg.Store.UpdateResponse(req.ID, resp.StatusCode, string(resHeadersJSON), resp.Body, resp.DurationMs)
 	}
 
 	// Broadcast to inspect UI
@@ -183,10 +191,11 @@ func (t *Tunnel) handleRequest(ctx context.Context, payload json.RawMessage) {
 			StatusCode: resp.StatusCode,
 			ResHeaders: string(resHeadersJSON),
 			ResBody:    resp.Body,
+			DurationMs: resp.DurationMs,
 		})
 	}
 
-	log.Printf("→ %s %s %d", req.Method, req.Path, resp.StatusCode)
+	log.Printf("→ %s %s %d (%dms)", req.Method, req.Path, resp.StatusCode, resp.DurationMs)
 
 	if err := t.writeEnvelope(ctx, protocol.TypeResponse, resp); err != nil {
 		log.Printf("write response: %v", err)
@@ -196,6 +205,20 @@ func (t *Tunnel) handleRequest(ctx context.Context, payload json.RawMessage) {
 // Close closes the tunnel connection.
 func (t *Tunnel) Close() error {
 	return t.conn.Close(websocket.StatusNormalClosure, "bye")
+}
+
+// matchesFilter checks if a request path matches any configured filter.
+// If no filters are set, all requests match.
+func (t *Tunnel) matchesFilter(path string) bool {
+	if len(t.cfg.Filters) == 0 {
+		return true
+	}
+	for _, f := range t.cfg.Filters {
+		if strings.Contains(path, f) {
+			return true
+		}
+	}
+	return false
 }
 
 // readEnvelope reads and decodes a protocol envelope from the WebSocket.

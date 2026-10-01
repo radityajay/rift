@@ -58,12 +58,11 @@ func (f *Forwarder) Forward(ctx context.Context, req *protocol.HTTPRequest) (*pr
 		return nil, fmt.Errorf("read response body: %w", err)
 	}
 
-	_ = duration // TODO: expose for inspect storage
-
 	return &protocol.HTTPResponse{
 		RequestID:  req.ID,
 		StatusCode: resp.StatusCode,
 		Headers:    resp.Header.Clone(),
 		Body:       body,
+		DurationMs: duration.Milliseconds(),
 	}, nil
 }

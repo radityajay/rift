@@ -55,6 +55,7 @@ Create a tunnel and forward webhooks to localhost.
 rift listen --to localhost:8080
 rift listen --to localhost:3000 --relay wss://relay.example.com
 rift listen --to localhost:8080 --no-inspect
+rift listen --to localhost:8080 --filter /webhook,/stripe
 ```
 
 | Flag | Default | Description |
@@ -63,6 +64,7 @@ rift listen --to localhost:8080 --no-inspect
 | `--relay` | `wss://relay.riftunnel.dev` | Relay server URL |
 | `--inspect` | `:4040` | Local inspect UI address |
 | `--no-inspect` | `false` | Disable inspect UI |
+| `--filter` | (none) | Only forward requests matching these path patterns |
 
 ### `rift relay`
 
