@@ -81,7 +81,11 @@ func (s *InspectServer) Start(ctx context.Context) error {
 		srv.Close()
 	}()
 
-	log.Printf("inspect UI: http://%s", s.addr)
+	displayAddr := s.addr
+	if len(displayAddr) > 0 && displayAddr[0] == ':' {
+		displayAddr = "localhost" + displayAddr
+	}
+	log.Printf("inspect UI: http://%s", displayAddr)
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return fmt.Errorf("inspect server: %w", err)
 	}
