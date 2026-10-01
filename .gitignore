@@ -5,3 +5,4 @@ bin/
 SESSION_CONTEXT.md
 SPEC.md
 CONTEXT.md
+testserver.py
