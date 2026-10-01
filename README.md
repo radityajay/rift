@@ -1,9 +1,9 @@
 # Rift
 
-[![CI](https://github.com/radityajayantara/rift/actions/workflows/ci.yml/badge.svg)](https://github.com/radityajayantara/rift/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/radityajayantara/rift)](https://github.com/radityajayantara/rift/releases)
+[![CI](https://github.com/radityajay/rift/actions/workflows/ci.yml/badge.svg)](https://github.com/radityajay/rift/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/radityajay/rift)](https://github.com/radityajay/rift/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Go Report Card](https://goreportcard.com/badge/github.com/radityajayantara/rift)](https://goreportcard.com/report/github.com/radityajayantara/rift)
+[![Go Report Card](https://goreportcard.com/badge/github.com/radityajay/rift)](https://goreportcard.com/report/github.com/radityajay/rift)
 
 **Privacy-first webhook tunnel.** Receive webhooks on localhost without third-party services inspecting your traffic.
 
@@ -83,16 +83,16 @@ Point your webhook provider (Stripe, GitHub, Midtrans, etc.) to the public URL. 
 
 ### Pre-built binaries
 
-Download from [GitHub Releases](https://github.com/radityajayantara/rift/releases). Single binary, no dependencies.
+Download from [GitHub Releases](https://github.com/radityajay/rift/releases). Single binary, no dependencies.
 
 ```bash
 # macOS (Apple Silicon)
-curl -L https://github.com/radityajayantara/rift/releases/latest/download/rift-darwin-arm64 -o rift
+curl -L https://github.com/radityajay/rift/releases/latest/download/rift-darwin-arm64 -o rift
 chmod +x rift
 sudo mv rift /usr/local/bin/
 
 # Linux (amd64)
-curl -L https://github.com/radityajayantara/rift/releases/latest/download/rift-linux-amd64 -o rift
+curl -L https://github.com/radityajay/rift/releases/latest/download/rift-linux-amd64 -o rift
 chmod +x rift
 sudo mv rift /usr/local/bin/
 ```
@@ -100,7 +100,7 @@ sudo mv rift /usr/local/bin/
 ### From source
 
 ```bash
-git clone https://github.com/radityajayantara/rift.git
+git clone https://github.com/radityajay/rift.git
 cd rift
 make build
 # Binary at ./bin/rift
